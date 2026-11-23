@@ -1,573 +1,254 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(const MonCV());
 }
 
-class MonCV extends StatelessWidget {
+class MembreFamille {
+  String nom;
+  String lien;
+  String telephone;
+
+  MembreFamille({
+    required this.nom,
+    required this.lien,
+    required this.telephone,
+  });
+}
+
+class MonCV extends StatefulWidget {
   const MonCV({super.key});
 
   @override
+  State<MonCV> createState() => _MonCVState();
+}
+
+class _MonCVState extends State<MonCV> {
+  bool _estConnecte = false;
+  String _utilisateurConnecte = '';
+  int _indexActuel = 0;
+
+  final List<MembreFamille> _membres = [
+    MembreFamille(nom: 'Jean Aganze', lien: 'Père', telephone: '+243 ...'),
+    MembreFamille(nom: 'Marie Kavira', lien: 'Mère', telephone: '+243 ...'),
+  ];
+
+  void _seConnecter(String identifiant) {
+    setState(() {
+      _utilisateurConnecte = identifiant;
+      _estConnecte = true;
+      _indexActuel = 0;
+    });
+  }
+
+  void _seDeconnecter() {
+    setState(() {
+      _estConnecte = false;
+      _utilisateurConnecte = '';
+      _indexActuel = 0;
+    });
+  }
+
+  void _allerVers(int index) {
+    setState(() => _indexActuel = index);
+  }
+
+  void _ajouterMembre(MembreFamille m) {
+    setState(() => _membres.add(m));
+  }
+
+  void _modifierMembre(int index, MembreFamille m) {
+    setState(() => _membres[index] = m);
+  }
+
+  void _supprimerMembre(int index) {
+    setState(() => _membres.removeAt(index));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      AccueilPage(
+        utilisateur: _utilisateurConnecte,
+        nombreMembres: _membres.length,
+        onAllerProfil: () => _allerVers(1),
+        onAllerFamille: () => _allerVers(1),
+      ),
+      ProfilEtFamillePage(
+        membres: _membres,
+        onAjouter: _ajouterMembre,
+        onModifier: _modifierMembre,
+        onSupprimer: _supprimerMembre,
+      ),
+      const ContactPage(),
+    ];
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'CV Anne-Marie',
+      title: 'Mon CV - TP2',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0D2B52),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF4F6F9),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0D2B52),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 6, 13, 72)),
         useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 3,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          color: Colors.white,
-        ),
       ),
-      home: const ConnexionPage(),
+      home: !_estConnecte
+          ? ConnexionPage(onConnecte: _seConnecter)
+          : Scaffold(
+              appBar: AppBar(
+                backgroundColor: const Color.fromARGB(255, 16, 4, 71),
+                foregroundColor: Colors.white,
+                title: const Text('Aganze Anne-Marie'),
+                actions: [
+                  IconButton(
+                    tooltip: 'Déconnexion',
+                    onPressed: _seDeconnecter,
+                    icon: const Icon(Icons.logout),
+                  ),
+                ],
+              ),
+              body: pages[_indexActuel],
+              bottomNavigationBar: BottomNavigationBar(
+                currentIndex: _indexActuel,
+                selectedItemColor: const Color.fromARGB(255, 3, 12, 66),
+                unselectedItemColor: const Color.fromARGB(255, 234, 242, 247),
+                onTap: _allerVers,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: 'Accueil',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profil',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.contact_mail),
+                    label: 'Contact',
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
 
-// We store the image as bytes so it works on Web + Mobile
-Uint8List? profileImageBytes;
+class ConnexionPage extends StatefulWidget {
+  final void Function(String identifiant) onConnecte;
 
-class ConnexionPage extends StatelessWidget {
-  const ConnexionPage({super.key});
+  const ConnexionPage({super.key, required this.onConnecte});
+
+  @override
+  State<ConnexionPage> createState() => _ConnexionPageState();
+}
+
+class _ConnexionPageState extends State<ConnexionPage> {
+  final _identifiantCtrl = TextEditingController();
+  final _motDePasseCtrl = TextEditingController();
+  String? _messageErreur;
+
+  void _validerConnexion() {
+    final identifiant = _identifiantCtrl.text.trim();
+    final motDePasse = _motDePasseCtrl.text.trim();
+
+    if (identifiant.isEmpty || motDePasse.isEmpty) {
+      setState(() {
+        _messageErreur =
+            'Veuillez saisir votre identifiant et votre mot de passe.';
+      });
+      return;
+    }
+
+    setState(() => _messageErreur = null);
+    widget.onConnecte(identifiant);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0D2B52), Color(0xFF1A3A6B), Color(0xFF0A1F3A)],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Card(
-                elevation: 16,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.lock_outline_rounded, size: 52, color: Color(0xFF0D2B52)),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Connexion',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D2B52),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Accédez à mon parcours inspirant',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 15, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 36),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Identifiant',
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          prefixIcon: const Icon(Icons.lock_outline_rounded),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                title: const Text('Mot de passe oublié'),
-                                content: const Text(
-                                  'Fonctionnalité non connectée pour le moment.\n\nCliquez simplement sur « Se connecter ».',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Mot de passe oublié ?',
-                            style: TextStyle(color: Color(0xFF0D2B52)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D2B52),
-                            foregroundColor: Colors.white,
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AccueilPage()),
-                            );
-                          },
-                          child: const Text(
-                            'Se connecter',
-                            style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 4, 14, 71),
+        foregroundColor: Colors.white,
+        title: const Text('Connexion'),
       ),
-    );
-  }
-}
-
-class AccueilPage extends StatefulWidget {
-  const AccueilPage({super.key});
-
-  @override
-  State<AccueilPage> createState() => _AccueilPageState();
-}
-
-class _AccueilPageState extends State<AccueilPage> {
-  Future<void> _changePhoto() async {
-    final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 90,
-      maxWidth: 800,
-    );
-
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      setState(() {
-        profileImageBytes = bytes;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Anne-Marie Aganze', style: TextStyle(fontWeight: FontWeight.w600)),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.camera_alt_outlined),
-              onPressed: _changePhoto,
-              tooltip: 'Changer la photo',
-            ),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: [
-              Tab(icon: Icon(Icons.home_rounded), text: 'Accueil'),
-              Tab(icon: Icon(Icons.people_alt_rounded), text: 'Famille'),
-              Tab(icon: Icon(Icons.contact_mail_rounded), text: 'Contact'),
-              Tab(icon: Icon(Icons.person_rounded), text: 'Profil'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            CVPage(onPhotoTap: _changePhoto),
-            const FamillePage(),
-            const ContactPage(),
-            ProfilPage(onPhotoTap: _changePhoto),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==================== PAGE CV ====================
-class CVPage extends StatelessWidget {
-  final VoidCallback onPhotoTap;
-  const CVPage({super.key, required this.onPhotoTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 24, 18, 40),
-      children: [
-        // Photo + Name
-        Center(
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: onPhotoTap,
-                child: Stack(
-                  alignment: Alignment.bottomRight,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF0D2B52), width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0D2B52).withOpacity(0.25),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: profileImageBytes != null
-                            ? Image.memory(
-                                profileImageBytes!,
-                                fit: BoxFit.cover,
-                                width: 150,
-                                height: 150,
-                              )
-                            : Container(
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.person, size: 80, color: Colors.grey),
-                              ),
+                    const Text(
+                      'Votre login',
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Connectez-vous pour accéder à Notre CV.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _identifiantCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Nom d\'utilisateur ou email',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0D2B52),
-                        shape: BoxShape.circle,
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _motDePasseCtrl,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Mot de passe',
+                        border: OutlineInputBorder(),
                       ),
-                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    ),
+                    if (_messageErreur != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _messageErreur!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    ElevatedButton(
+                      onPressed: _validerConnexion,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('Se connecter'),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Aganze Rukomeza Anne-Marie',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0D2B52),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D2B52).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: const Text(
-                  'Entrepreneure  •  Tech  •  Impact social',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: Color(0xFF0D2B52),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        _buildCard(
-          title: 'MON HISTOIRE',
-          child: const Text(
-            'Je suis une jeune femme animée par une vision claire : utiliser la technologie et le leadership pour créer un impact réel dans ma communauté.\n\n'
-            'Chaque défi est pour moi une opportunité d’apprendre, de grandir et d’inspirer les autres.',
-            style: TextStyle(fontSize: 15.5, height: 1.65),
-          ),
-        ),
-        _buildCard(
-          title: 'FORMATION',
-          child: Column(
-            children: const [
-              _InfoRow(year: '2024 – 2026', text: 'Informatique de Gestion'),
-              _InfoRow(year: '2022 – 2023', text: 'Entrepreneuriat et Leadership'),
-              _InfoRow(year: '2020 – 2022', text: 'Anglais et Développement personnel'),
-            ],
-          ),
-        ),
-        _buildCard(
-          title: 'EXPÉRIENCE',
-          child: Column(
-            children: const [
-              _Bullet('Volontariat en Logistique'),
-              _Bullet('Stage en Informatique'),
-              _Bullet('Projets à impact social'),
-            ],
-          ),
-        ),
-        _buildCard(
-          title: 'COMPÉTENCES',
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: const [
-              _Chip(text: 'Excel', dark: true),
-              _Chip(text: 'HTML & CSS', dark: true),
-              _Chip(text: 'Base de données', dark: true),
-            ],
-          ),
-        ),
-        _buildCard(
-          title: 'LANGUES',
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: const [
-              _Chip(text: 'Français'),
-              _Chip(text: 'Anglais'),
-              _Chip(text: 'Kiswahili'),
-            ],
-          ),
-        ),
-        _buildCard(
-          title: 'CE QUI M’ANIME',
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: const [
-              _Chip(text: 'Entrepreneuriat social'),
-              _Chip(text: 'Lecture'),
-              _Chip(text: 'Art'),
-              _Chip(text: 'Technologie'),
-              _Chip(text: 'Sport'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCard({required String title, required Widget child}) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D2B52),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D2B52),
-                  ),
-                ),
-              ],
             ),
-            const SizedBox(height: 14),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String year;
-  final String text;
-  const _InfoRow({required this.year, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(year, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0D2B52))),
           ),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _Bullet extends StatelessWidget {
-  final String text;
-  const _Bullet(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle, size: 18, color: Color(0xFF0D2B52)),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String text;
-  final bool dark;
-  const _Chip({required this.text, this.dark = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF0D2B52) : const Color(0xFF0D2B52).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: dark ? Colors.white : const Color(0xFF0D2B52),
-          fontWeight: FontWeight.w600,
-          fontSize: 13.5,
         ),
       ),
     );
   }
 }
 
-// ==================== PAGE FAMILLE ====================
-class FamillePage extends StatelessWidget {
-  const FamillePage({super.key});
+// Page Accueil dédiée uniquement à la bienvenue
+class AccueilPage extends StatelessWidget {
+  final String utilisateur;
+  final int nombreMembres;
+  final VoidCallback onAllerProfil;
+  final VoidCallback onAllerFamille;
 
-  @override
-  Widget build(BuildContext context) {
-    final list = [
-      {'name': 'Emmanuella Mwamba', 'relation': 'Nièce'},
-      {'name': 'Bibisha', 'relation': 'Tante'},
-      {'name': 'Martial', 'relation': 'Frère'},
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        const Text('Ma Famille', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D2B52))),
-        const SizedBox(height: 16),
-        ...list.map((person) {
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: CircleAvatar(
-                backgroundColor: const Color(0xFF0D2B52),
-                child: Text(person['name']![0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-              title: Text(person['name']!, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('Lien familial : ${person['relation']}'),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-// ==================== PAGE CONTACT ====================
-class ContactPage extends StatelessWidget {
-  const ContactPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        const Text('Me contacter', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D2B52))),
-        const SizedBox(height: 16),
-        _tile(Icons.phone, 'Téléphone', '+243 991 089 655'),
-        _tile(Icons.email, 'Email', 'annemarieaganze@gmail.com'),
-        _tile(Icons.code, 'GitHub', 'annemariemaker'),
-        _tile(Icons.link, 'LinkedIn', 'Anna'),
-      ],
-    );
-  }
-
-  Widget _tile(IconData icon, String title, String value) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF0D2B52)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(value),
-      ),
-    );
-  }
-}
-
-// ==================== PAGE PROFIL ====================
-class ProfilPage extends StatelessWidget {
-  final VoidCallback onPhotoTap;
-  const ProfilPage({super.key, required this.onPhotoTap});
+  const AccueilPage({
+    super.key,
+    required this.utilisateur,
+    required this.nombreMembres,
+    required this.onAllerProfil,
+    required this.onAllerFamille,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -575,60 +256,29 @@ class ProfilPage extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTap: onPhotoTap,
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF0D2B52), width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0D2B52).withOpacity(0.25),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: profileImageBytes != null
-                          ? Image.memory(
-                              profileImageBytes!,
-                              fit: BoxFit.cover,
-                              width: 180,
-                              height: 180,
-                            )
-                          : Container(
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.person, size: 100, color: Colors.grey),
-                            ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0D2B52),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
-                  ),
-                ],
-              ),
+            const Text(
+              'Bienvenue',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              utilisateur.isEmpty
+                  ? 'Bienvenue sur le CV numérique d\'Aganze .'
+                  : 'Karibu, $utilisateur.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 17),
             ),
             const SizedBox(height: 28),
-            const Text(
-              'Aganze Anne-Marie',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0D2B52)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Une vision. Une ambition. Un impact.',
-              style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+            ElevatedButton.icon(
+              onPressed: onAllerProfil,
+              icon: const Icon(Icons.person),
+              label: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Text('Voir notre Profil '),
+              ),
             ),
           ],
         ),
@@ -636,3 +286,384 @@ class ProfilPage extends StatelessWidget {
     );
   }
 }
+
+// Page Profil avec Photo, Membres de la famille attachés via bouton, et Expérience CV en bas
+class ProfilEtFamillePage extends StatefulWidget {
+  final List<MembreFamille> membres;
+  final void Function(MembreFamille) onAjouter;
+  final void Function(int, MembreFamille) onModifier;
+  final void Function(int) onSupprimer;
+
+  const ProfilEtFamillePage({
+    super.key,
+    required this.membres,
+    required this.onAjouter,
+    required this.onModifier,
+    required this.onSupprimer,
+  });
+
+  @override
+  State<ProfilEtFamillePage> createState() => _ProfilEtFamillePageState();
+}
+
+class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
+  bool _afficherMembresFamille = false;
+
+  void _ouvrirFormulaire(
+    BuildContext context, {
+    MembreFamille? membre,
+    int? index,
+  }) {
+    final nomCtrl = TextEditingController(text: membre?.nom ?? '');
+    final lienCtrl = TextEditingController(text: membre?.lien ?? '');
+    final telCtrl = TextEditingController(text: membre?.telephone ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(membre == null ? 'Ajouter un membre' : 'Modifier le membre'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nomCtrl,
+              decoration: const InputDecoration(labelText: 'Nom complet'),
+            ),
+            TextField(
+              controller: lienCtrl,
+              decoration: const InputDecoration(labelText: 'Lien familial'),
+            ),
+            TextField(
+              controller: telCtrl,
+              decoration: const InputDecoration(labelText: 'Téléphone'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final nom = nomCtrl.text.trim();
+              if (nom.isEmpty) return;
+
+              final nouveau = MembreFamille(
+                nom: nom,
+                lien: lienCtrl.text.trim(),
+                telephone: telCtrl.text.trim(),
+              );
+
+              if (index != null) {
+                widget.onModifier(index, nouveau);
+              } else {
+                widget.onAjouter(nouveau);
+              }
+
+              Navigator.pop(dialogCtx);
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _ouvrirDetail(BuildContext context, int index) {
+    final pageContext = context;
+    final membre = widget.membres[index];
+
+    showModalBottomSheet(
+      context: pageContext,
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              membre.nom,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text('Lien : ${membre.lien}'),
+            Text('Téléphone : ${membre.telephone}'),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(sheetCtx);
+                    widget.onSupprimer(index);
+                  },
+                  child: const Text(
+                    'Supprimer',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(sheetCtx);
+                    _ouvrirFormulaire(
+                      pageContext,
+                      membre: membre,
+                      index: index,
+                    );
+                  },
+                  child: const Text('Modifier'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // En-tête Profil avec Photo de Anne
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 38,
+                    backgroundColor: Colors.indigo.shade100,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/profile.jpg',
+                        width: 76,
+                        height: 76,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Color.fromARGB(255, 18, 30, 101),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Aganze Anne-Marie',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'une jeune Entrepreneure passionner par la Technologie,le Leadership Ethique et le Developpement communautaire',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Bouton attaché pour afficher ou masquer les membres de la famille
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Membres de la famille (${widget.membres.length})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _afficherMembresFamille = !_afficherMembresFamille;
+                          });
+                        },
+                        icon: Icon(
+                          _afficherMembresFamille
+                              ? Icons.visibility_off
+                              : Icons.people,
+                        ),
+                        label: Text(
+                          _afficherMembresFamille ? 'Masquer' : 'Afficher',
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_afficherMembresFamille) ...[
+                    const SizedBox(height: 10),
+                    const Divider(),
+                    if (widget.membres.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Aucun membre enregistré.'),
+                      )
+                    else
+                      ...List.generate(widget.membres.length, (index) {
+                        final m = widget.membres[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(m.nom),
+                          subtitle: Text('${m.lien} • ${m.telephone}'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _ouvrirDetail(context, index),
+                        );
+                      }),
+                    const SizedBox(height: 6),
+                    OutlinedButton.icon(
+                      onPressed: () => _ouvrirFormulaire(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ajouter un membre'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Section Expérience (CV) en bas de page
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Expérience & Parcours (CV)',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.school, color: Colors.indigo),
+                    title: Text('Informatique & Gestion'),
+                    subtitle: Text(
+                      'Développement d\'applications, bases de données et gestion de projets.',
+                    ),
+                  ),
+                  Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.volunteer_activism, color: Colors.indigo),
+                    title: Text('Initiatives numériques & communautaires'),
+                    subtitle: Text(
+                      'Accompagnement des jeunes filles au numérique, leadership et projets sociaux.',
+                    ),
+                  ),
+                  
+                   Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.volunteer_activism, color: Color.fromARGB(255, 10, 20, 77)),
+                    title: Text('Volontariat'),
+                    subtitle: Text(
+                      'Logistique.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color.fromARGB(255, 11, 23, 90),
+        foregroundColor: Colors.white,
+        onPressed: () => _ouvrirFormulaire(context),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class ContactPage extends StatefulWidget {
+  const ContactPage({super.key});
+
+  @override
+  State<ContactPage> createState() => _ContactPageState();
+}
+
+class _ContactPageState extends State<ContactPage> {
+  final _nomCtrl = TextEditingController();
+  final _messageCtrl = TextEditingController();
+
+  void _envoyerMessage() {
+    if (_nomCtrl.text.trim().isEmpty || _messageCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez remplir votre nom et votre message.'),
+        ),
+      );
+      return;
+    }
+    final nom = _nomCtrl.text.trim();
+    _nomCtrl.clear();
+    _messageCtrl.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Message envoyé par $nom.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Me contacter',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        const Text('Goma, République démocratique du Congo'),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _nomCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Votre nom',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _messageCtrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Votre message',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: _envoyerMessage,
+          child: const Text('Envoyer'),
+        ),
+      ],
+    );
+  }
+}
+
