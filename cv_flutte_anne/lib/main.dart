@@ -109,7 +109,7 @@ Future<void> _chargerMembres()async{
         : email.trim();
 
     if (!mounted) return;
-    _seConnecter(nomAffiche);
+    (nomAffiche);
   } catch (e) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
