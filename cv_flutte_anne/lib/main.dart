@@ -1,3 +1,5 @@
+import 'services/api_service.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -40,6 +42,27 @@ class _MonCVState extends State<MonCV> {
       _indexActuel = 0;
     });
   }
+  Future<void> _soumettreConnexion(String email, String password) async {
+  try {
+    final res = await ApiService.login(
+      email: email.trim(),
+      password: password,
+    );
+
+    final user = res['data'];
+    final nomAffiche = (user is Map && user['name'] != null)
+        ? user['name'].toString()
+        : email.trim();
+
+    if (!mounted) return;
+    _seConnecter(nomAffiche);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur : $e')),
+    );
+  }
+}
 
   void _seDeconnecter() {
     setState(() {
@@ -91,7 +114,10 @@ class _MonCVState extends State<MonCV> {
         useMaterial3: true,
       ),
       home: !_estConnecte
-          ? ConnexionPage(onConnecte: _seConnecter)
+          ? ConnexionPage(onConnecte: (identifiant){
+            _soumettreConnexion(identifiant,'');
+            }
+          )
           : Scaffold(
               appBar: AppBar(
                 backgroundColor: const Color.fromARGB(255, 16, 4, 71),

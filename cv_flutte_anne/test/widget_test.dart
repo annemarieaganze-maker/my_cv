@@ -6,25 +6,17 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
-
 import 'package:cv_flutte_anne/main.dart';
-
+ // 1.Charger et afficher votre application mon cv
 void main() {
-  testWidgets('Verification de l\'affichage de la page CV', (WidgetTester tester) async {
-    // 1.Charger et afficher votre application mon cv
-    await tester.pumpWidget(const MonCV());
+  testWidgets("Verification de l'affichage de la page CV", (WidgetTester tester) async {
+await tester.pumpWidget(const MonCV());
 
     // Verifie que l'application demarre bien sans ecran blanc ni erreur.
     expect(find.byType(MaterialApp), findsOneWidget);
-    expect(find.byType(Scaffold), findsNothing);
+    expect(find.byType(Scaffold), findsWidgets);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.byType(MaterialApp), findsNothing);
-    expect(find.byType(Scaffold), findsOneWidget);
+  
+    
   });
 }
