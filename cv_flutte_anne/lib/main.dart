@@ -1,5 +1,4 @@
 import 'services/api_service.dart';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -7,16 +6,39 @@ void main() {
 }
 
 class MembreFamille {
+  int? id;
   String nom;
-  String lien;
-  String telephone;
+  String postnom;
+  String prenom;
+  String lieuNaissance;
+  String dateNaissance;
+  String parente;
 
   MembreFamille({
+    this.id,
     required this.nom,
-    required this.lien,
-    required this.telephone,
+    required this.postnom,
+    required this.prenom,
+    required this.lieuNaissance,
+    required this.dateNaissance,
+    required this.parente,
   });
+
+  factory MembreFamille.fromJson(Map<String, dynamic> json) {
+    return MembreFamille(
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()),
+      nom: json['nom'] ?? '',
+      postnom: json['postnom'] ?? '',
+      prenom: json['prenom'] ?? '',
+      lieuNaissance: json['lieu_naissance'] ?? '',
+      dateNaissance: json['date_naissance'] ?? '',
+      parente: json['parente'] ?? '',
+    );
+  }
 }
+
 
 class MonCV extends StatefulWidget {
   const MonCV({super.key});
@@ -30,18 +52,50 @@ class _MonCVState extends State<MonCV> {
   String _utilisateurConnecte = '';
   int _indexActuel = 0;
 
-  final List<MembreFamille> _membres = [
-    MembreFamille(nom: 'Jean Aganze', lien: 'Père', telephone: '+243 ...'),
-    MembreFamille(nom: 'Marie Kavira', lien: 'Mère', telephone: '+243 ...'),
-  ];
-
-  void _seConnecter(String identifiant) {
-    setState(() {
-      _utilisateurConnecte = identifiant;
-      _estConnecte = true;
-      _indexActuel = 0;
-    });
+   List<MembreFamille> _membres = [
+   MembreFamille(
+    nom: 'Mushagalusa',
+    postnom: 'Bahati',
+    prenom: 'Jean',
+    lieuNaissance: 'Butembo',
+    dateNaissance: '8 septembre 1969',
+    parente: 'Père',
+  ),
+  MembreFamille(
+    nom: 'Kavira',
+    postnom: 'Dunia',
+    prenom: 'Marie',
+    lieuNaissance: 'Goma',
+    dateNaissance: '7 juillet 1898',
+    parente: 'Mère',
+  ),
+];
+@override
+void initState(){
+  super.initState();
+  _chargerMembres();
+}
+Future<void> _chargerMembres()async{
+  try {
+    final donnees=await
+  ApiService.getMembres();
+  if(!mounted)return;
+  setState(() {
+    _membres= donnees.map((membre){
+      return MembreFamille.fromJson(
+        Map<String,dynamic>.from(membre
+      ),);
+    }).toList();
+  });
+  } catch (e) {
+    debugPrint('Erreur de chargement:$e');
+  } {
   }
+}
+
+
+
+ 
   Future<void> _soumettreConnexion(String email, String password) async {
   try {
     final res = await ApiService.login(
@@ -76,17 +130,98 @@ class _MonCVState extends State<MonCV> {
     setState(() => _indexActuel = index);
   }
 
-  void _ajouterMembre(MembreFamille m) {
-    setState(() => _membres.add(m));
-  }
+  Future<void> _ajouterMembre(MembreFamille membre) async {
+  try {
+    await ApiService.createMembre(
+      nom: membre.nom,
+      postnom: membre.postnom,
+      prenom: membre.prenom,
+      lieuNaissance: membre.lieuNaissance,
+      dateNaissance: membre.dateNaissance,
+      parente: membre.parente,
+    );
 
-  void _modifierMembre(int index, MembreFamille m) {
-    setState(() => _membres[index] = m);
-  }
+    await _chargerMembres();
 
-  void _supprimerMembre(int index) {
-    setState(() => _membres.removeAt(index));
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Membre ajouté avec succès !'),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur : $e')),
+    );
   }
+}
+
+
+
+  Future<void> _modifierMembre(int index, MembreFamille m) async {
+  try {
+    if (m.id == null) {
+      throw Exception('Identifiant du membre introuvable.');
+    }
+
+    await ApiService.updateMembre(
+      id: m.id!,
+      nom: m.nom,
+      postnom: m.postnom,
+      prenom: m.prenom,
+      lieuNaissance: m.lieuNaissance,
+      dateNaissance: m.dateNaissance,
+      parente: m.parente,
+    );
+
+    await _chargerMembres();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Membre modifié avec succès !')),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur : $e')),
+    );
+  }
+}
+
+
+  Future<void> _supprimerMembre(int index) async {
+  try {
+    final membre = _membres[index];
+
+    if (membre.id == null) {
+      throw Exception('Identifiant du membre introuvable.');
+    }
+
+    await ApiService.deleteMembre(membre.id!);
+
+    await _chargerMembres();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Membre supprimé avec succès !'),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur : $e')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +249,10 @@ class _MonCVState extends State<MonCV> {
         useMaterial3: true,
       ),
       home: !_estConnecte
-          ? ConnexionPage(onConnecte: (identifiant){
-            _soumettreConnexion(identifiant,'');
-            }
-          )
+          ? ConnexionPage(onConnecte: 
+            _soumettreConnexion)
+            
+          
           : Scaffold(
               appBar: AppBar(
                 backgroundColor: const Color.fromARGB(255, 16, 4, 71),
@@ -158,7 +293,7 @@ class _MonCVState extends State<MonCV> {
 }
 
 class ConnexionPage extends StatefulWidget {
-  final void Function(String identifiant) onConnecte;
+  final Future<void>Function(String email,String password) onConnecte;
 
   const ConnexionPage({super.key, required this.onConnecte});
 
@@ -171,7 +306,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
   final _motDePasseCtrl = TextEditingController();
   String? _messageErreur;
 
-  void _validerConnexion() {
+  Future<void> _validerConnexion()async {
     final identifiant = _identifiantCtrl.text.trim();
     final motDePasse = _motDePasseCtrl.text.trim();
 
@@ -184,7 +319,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
     }
 
     setState(() => _messageErreur = null);
-    widget.onConnecte(identifiant);
+    await widget.onConnecte(identifiant , motDePasse);
   }
 
   @override
@@ -244,7 +379,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                     ],
                     const SizedBox(height: 18),
                     ElevatedButton(
-                      onPressed: _validerConnexion,
+                      onPressed: () async {await _validerConnexion();},
                       child: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Text('Se connecter'),
@@ -341,8 +476,11 @@ class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
     int? index,
   }) {
     final nomCtrl = TextEditingController(text: membre?.nom ?? '');
-    final lienCtrl = TextEditingController(text: membre?.lien ?? '');
-    final telCtrl = TextEditingController(text: membre?.telephone ?? '');
+final postnomCtrl = TextEditingController(text: membre?.postnom ?? '');
+final prenomCtrl = TextEditingController(text: membre?.prenom ?? '');
+final lieuCtrl = TextEditingController(text: membre?.lieuNaissance ?? '');
+final dateCtrl = TextEditingController(text: membre?.dateNaissance ?? '');
+final parenteCtrl = TextEditingController(text: membre?.parente ?? '');
 
     showDialog(
       context: context,
@@ -351,18 +489,31 @@ class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: nomCtrl,
-              decoration: const InputDecoration(labelText: 'Nom complet'),
-            ),
-            TextField(
-              controller: lienCtrl,
-              decoration: const InputDecoration(labelText: 'Lien familial'),
-            ),
-            TextField(
-              controller: telCtrl,
-              decoration: const InputDecoration(labelText: 'Téléphone'),
-            ),
+    TextField(        
+  controller: nomCtrl,
+  decoration: const InputDecoration(labelText: 'Nom'),
+),
+TextField(
+  controller: postnomCtrl,
+  decoration: const InputDecoration(labelText: 'Postnom'),
+),
+TextField(
+  controller: prenomCtrl,
+  decoration: const InputDecoration(labelText: 'Prénom'),
+),
+TextField(
+  controller: lieuCtrl,
+  decoration: const InputDecoration(labelText: 'Lieu de naissance'),
+),
+TextField(
+  controller: dateCtrl,
+  decoration: const InputDecoration(labelText: 'Date de naissance (AAAA-MM-JJ)'),
+),
+TextField(
+  controller: parenteCtrl,
+  decoration: const InputDecoration(labelText: 'Parenté'),
+),
+
           ],
         ),
         actions: [
@@ -376,10 +527,14 @@ class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
               if (nom.isEmpty) return;
 
               final nouveau = MembreFamille(
-                nom: nom,
-                lien: lienCtrl.text.trim(),
-                telephone: telCtrl.text.trim(),
-              );
+  id: membre?.id,
+  nom: nomCtrl.text.trim(),
+  postnom: postnomCtrl.text.trim(),
+  prenom: prenomCtrl.text.trim(),
+  lieuNaissance: lieuCtrl.text.trim(),
+  dateNaissance: dateCtrl.text.trim(),
+  parente: parenteCtrl.text.trim(),
+);
 
               if (index != null) {
                 widget.onModifier(index, nouveau);
@@ -413,8 +568,13 @@ class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Text('Lien : ${membre.lien}'),
-            Text('Téléphone : ${membre.telephone}'),
+           Text('Nom : ${membre.nom}'),
+Text('Postnom : ${membre.postnom}'),
+Text('Prénom : ${membre.prenom}'),
+Text('Lieu de naissance : ${membre.lieuNaissance}'),
+Text('Date de naissance : ${membre.dateNaissance}'),
+Text('Parenté : ${membre.parente}'),
+
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -551,12 +711,12 @@ class _ProfilEtFamillePageState extends State<ProfilEtFamillePage> {
                       ...List.generate(widget.membres.length, (index) {
                         final m = widget.membres[index];
                         return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(m.nom),
-                          subtitle: Text('${m.lien} • ${m.telephone}'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _ouvrirDetail(context, index),
-                        );
+  contentPadding: EdgeInsets.zero,
+  title: Text('${m.nom} ${m.postnom} ${m.prenom}'),
+  subtitle: Text(m.parente),
+  trailing: const Icon(Icons.chevron_right),
+  onTap: () => _ouvrirDetail(context, index),
+);
                       }),
                     const SizedBox(height: 6),
                     OutlinedButton.icon(
