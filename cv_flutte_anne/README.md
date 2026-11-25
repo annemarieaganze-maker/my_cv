@@ -16,3 +16,6 @@ le nom de la base de donnee mysql api phpsur http://localhost/api-test/public cv
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+//la video du tp2
+https://drive.google.com/file/d/1995FmiPqiiDJQmSo7Ekw9cpHwVwwuc_8/view?usp=sharing
