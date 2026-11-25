@@ -6,6 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:flutter/material.dart';
 import 'package:cv_flutte_anne/main.dart';
  // 1.Charger et afficher votre application mon cv

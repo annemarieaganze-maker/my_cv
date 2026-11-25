@@ -1,6 +1,7 @@
 import 'services/api_service.dart';
 import 'package:flutter/material.dart';
 
+
 void main() {
   runApp(const MonCV());
 }
@@ -89,13 +90,10 @@ Future<void> _chargerMembres()async{
   });
   } catch (e) {
     debugPrint('Erreur de chargement:$e');
-  } {
+  
   }
 }
 
-
-
- 
   Future<void> _soumettreConnexion(String email, String password) async {
   try {
     final res = await ApiService.login(
@@ -109,8 +107,13 @@ Future<void> _chargerMembres()async{
         : email.trim();
 
     if (!mounted) return;
-    (nomAffiche);
+    setState(() {
+      _estConnecte=true;
+      _utilisateurConnecte=nomAffiche;
+    });
+    
   } catch (e) {
+    debugPrint('ERREUR LOGIN: $e');
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Erreur : $e')),
@@ -249,8 +252,7 @@ Future<void> _chargerMembres()async{
         useMaterial3: true,
       ),
       home: !_estConnecte
-          ? ConnexionPage(onConnecte: 
-            _soumettreConnexion)
+          ? ConnexionPage(onConnecte: _soumettreConnexion)
             
           
           : Scaffold(
@@ -313,13 +315,22 @@ class _ConnexionPageState extends State<ConnexionPage> {
     if (identifiant.isEmpty || motDePasse.isEmpty) {
       setState(() {
         _messageErreur =
-            'Veuillez saisir votre identifiant et votre mot de passe.';
+            ' identifiant et votre mot de passe.';
       });
       return;
     }
 
     setState(() => _messageErreur = null);
-    await widget.onConnecte(identifiant , motDePasse);
+    try {
+      await widget.onConnecte(identifiant , motDePasse);
+
+    } catch (e){
+      setState(() {
+        
+      });
+      
+    }
+    
   }
 
   @override
@@ -350,7 +361,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Connectez-vous pour accéder à Notre CV.',
+                      'Connectez-vous pour accéder à votre .',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),

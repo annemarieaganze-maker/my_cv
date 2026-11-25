@@ -8,7 +8,7 @@ class ApiService {
   // - Émulateur Android : http://10.0.2.2/api-test/public
   // - Web / Windows / iOS sim : http://localhost/api-test/public
   // - Téléphone physique : http://<IP_DE_VOTRE_PC>/api-test/public
-  static const String baseUrl = 'http://10.0.2.2/api-test/public';
+  static const String baseUrl = 'http://localhost/api-test/public';
   static const String _userKey = 'logged_in_user';
 
   static Map<String, String> get _jsonHeaders => {
